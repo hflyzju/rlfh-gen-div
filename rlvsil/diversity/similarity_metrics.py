@@ -209,3 +209,138 @@ class OpenAIEmbeddingsSimilarity(metric.SimilarityMetric):
     def __call__(self, resp_a, resp_b):
         super().__call__(resp_b, resp_b)
         return self.openai_embedding_cosine_similarity(resp_a, resp_b)
+
+
+
+""""
+你是一个python专家，请参考openai 相似度计算方法，生成一个bge模型的相似度计算方法
+
+# openai相似度计算方法
+```python
+class OpenAIEmbeddingsSimilarity(metric.SimilarityMetric):
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.engine = "text-embedding-ada-002"
+
+    def embed(self, sentence):
+        if type(sentence) == str:
+            sentence = [sentence]
+        embeddings = get_embeddings(sentence, self.engine)
+        # Retry any inputs that return nans
+        # embeddings should be a list of 1536-dimensional vectors, but some elements
+        # are a single-element list with a nan. Retry those elements
+        elements_to_retry = [i for i, e in enumerate(embeddings) if len(e) == 1 and np.isnan(e[0])]
+        retries = 0
+        while len(elements_to_retry) > 0 and retries < 5:
+            retried_embeddings = get_embeddings([sentence[i] for i in elements_to_retry], self.engine)
+            for i, e in zip(elements_to_retry, retried_embeddings):
+                embeddings[i] = e
+            elements_to_retry = [i for i, e in enumerate(embeddings) if len(e) == 1 and np.isnan(e[0])]
+            retries += 1
+        if len(elements_to_retry) > 0:
+            print(f"Failed to get embeddings for {elements_to_retry} elements")
+            # Just set elements_to_retry to all zeros
+            for i in elements_to_retry:
+                embeddings[i] = np.zeros(1536)
+        return embeddings
+
+    def openai_embedding_cosine_similarity(self, resps_1, resps_2):
+        embeds_1 = self.embed(resps_1)
+        embeds_2 = self.embed(resps_2)
+        return cosine_similarity(embeds_1, embeds_2).diagonal()
+
+    def __call__(self, resp_a, resp_b):
+        super().__call__(resp_b, resp_b)
+        return self.openai_embedding_cosine_similarity(resp_a, resp_b)
+```
+
+# bge模型调用方法
+```python
+from sentence_transformers import SentenceTransformer
+sentences_1 = ["样例数据-1", "样例数据-2"]
+sentences_2 = ["样例数据-3", "样例数据-4"]
+model = SentenceTransformer('BAAI/bge-large-zh-v1.5')
+embeddings_1 = model.encode(sentences_1, normalize_embeddings=True)
+embeddings_2 = model.encode(sentences_2, normalize_embeddings=True)
+similarity = embeddings_1 @ embeddings_2.T
+print(similarity)
+
+```
+
+# Requirments
+1. 需要继承metric.SimilarityMetric
+2. 需要实现__call__方法
+3. 输出结果维度和openai一致
+4. 代码添加详细注释
+
+# bge相似度计算metric, BgeEmbeddingsSimilarity
+"""
+from sentence_transformers import SentenceTransformer
+import numpy as np
+# from sklearn.metrics.pairwise import cosine_similarity
+# import metric  # 假设metric模块中定义了SimilarityMetric基类
+
+
+class BgeEmbeddingsSimilarity(metric.SimilarityMetric):
+    """
+    BgeEmbeddingsSimilarity类用于计算基于BGE模型的文本相似度。
+    继承自metric.SimilarityMetric基类。
+    """
+
+    def __init__(self, config):
+        """
+        初始化BgeEmbeddingsSimilarity类。
+
+        Args:
+            config: 配置参数，具体内容未在代码中使用，但保留以符合继承要求。
+        """
+        super().__init__(config)
+        self.model = SentenceTransformer('BAAI/bge-large-zh-v1.5')
+        if torch.cuda.is_available():
+            self.model.to(torch.device("cuda:0"))
+
+    def embed(self, sentences):
+        """
+        将输入的句子列表转换为嵌入向量。
+
+        Args:
+            sentences: 句子列表，可以是单个字符串或字符串列表。
+
+        Returns:
+            嵌入向量列表，每个向量已经过归一化处理。
+        """
+        if isinstance(sentences, str):
+            sentences = [sentences]
+        embeddings = self.model.encode(sentences, normalize_embeddings=True)
+        return embeddings
+
+    def bge_embedding_cosine_similarity(self, sentences_1, sentences_2):
+        """
+        计算两个句子列表之间的余弦相似度。
+
+        Args:
+            sentences_1: 第一个句子列表。
+            sentences_2: 第二个句子列表。
+
+        Returns:
+            余弦相似度矩阵的对角线元素，表示对应句子之间的相似度。
+        """
+        embeddings_1 = self.embed(sentences_1)
+        embeddings_2 = self.embed(sentences_2)
+        similarity_matrix = cosine_similarity(embeddings_1, embeddings_2)
+        return similarity_matrix.diagonal()
+
+    def __call__(self, resp_a, resp_b):
+        """
+        实现__call__方法，计算两个输入句子列表的相似度。
+
+        Args:
+            resp_a: 第一个句子列表。
+            resp_b: 第二个句子列表。
+
+        Returns:
+            余弦相似度矩阵的对角线元素，表示对应句子之间的相似度。
+        """
+        super().__call__(resp_a, resp_b)  # 调用基类的__call__方法
+        return self.bge_embedding_cosine_similarity(resp_a, resp_b)

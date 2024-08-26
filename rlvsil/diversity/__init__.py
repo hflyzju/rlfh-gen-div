@@ -14,7 +14,7 @@ import numpy as np
 from diversity.diversity_metrics import (
     AveragedDistinctNgrams, AveragedExpectationAdjustedDistinctNgrams,
     CosineSimilarity2Diversity, NLIFromSim, NLISampleFromSim,
-    OpenAiEmbeddingsFromSim, SentBertFromSim)
+    OpenAiEmbeddingsFromSim, SentBertFromSim, BgeEmbeddingsFromSim)
 
 DEFAULT_CONFIGS = {
     "averaged_distinct_ngrams": AveragedDistinctNgrams.default_config,
@@ -24,6 +24,7 @@ DEFAULT_CONFIGS = {
     "nli_from_sim": NLIFromSim.default_config,
     "nli_sample_from_sim": NLISampleFromSim.default_config,
     "openai_from_sim": OpenAiEmbeddingsFromSim.default_config,
+    "bge_from_sim": BgeEmbeddingsFromSim.default_config
 }
 
 
@@ -35,6 +36,7 @@ METRICS = [
     NLIFromSim,
     OpenAiEmbeddingsFromSim,
     NLISampleFromSim,
+    BgeEmbeddingsFromSim
 ]
 
 

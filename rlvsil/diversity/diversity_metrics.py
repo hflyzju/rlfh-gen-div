@@ -162,6 +162,19 @@ class OpenAiEmbeddingsFromSim(metric.Similarity2DiversityMetric):
         super().__init__(config, similarity_metrics.OpenAIEmbeddingsSimilarity)
 
 
+class BgeEmbeddingsFromSim(metric.Similarity2DiversityMetric):
+
+    use_me = True
+    name = "bge_from_sim"
+    batched = True
+    batch_size = 1024
+
+    default_config = {"engine": "BAAI/bge-large-zh-v1.5", "top_k": 1}
+
+    def __init__(self, config):
+        super().__init__(config, similarity_metrics.BgeEmbeddingsSimilarity)
+
+
 if __name__ == "__main__":
 
     def print_metric(metric, resp_set):
